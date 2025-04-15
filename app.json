@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "scheme": "acme",
+    "plugins": [
+      "expo-router"
+    ],
+    "name": "Go2SolarIndia",
+    "slug": "Go2SolarIndia"
+  }
+}
