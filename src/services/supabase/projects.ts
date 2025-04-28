@@ -8,11 +8,27 @@ export interface SolarProject {
   status: 'quote' | 'confirmed' | 'installation' | 'active';
   capacity_kw: number;
   estimated_cost: number;
-  actual_cost: number;
-  installation_date: string;
-  completion_date: string;
+  actual_cost: number | null;
+  installation_date: string | null;
+  completion_date: string | null;
   created_at: string;
   updated_at: string;
+  // Additional quote fields
+  monthly_bill: number;
+  need_financing: 'yes' | 'no' | 'maybe';
+  location: string;
+  latitude: number;
+  longitude: number;
+  space_required: number;
+  annual_energy: number;
+  annual_savings: number;
+  subsidy: number;
+  effective_cost: number;
+  // Digital solar specific fields
+  solar_type?: 'physical' | 'digital';
+  state?: string;
+  electricity_provider?: string;
+  savings_range?: number;
 }
 
 export class ProjectsService extends BaseDatabaseService {
@@ -30,6 +46,10 @@ export class ProjectsService extends BaseDatabaseService {
 
   async getCustomerProjects(customerId: string) {
     return this.getByField<SolarProject>('customer_id', customerId);
+  }
+
+  async getProjectById(projectId: string) {
+    return this.getById<SolarProject>(projectId);
   }
 
   async getProjectsWithDetails() {
@@ -62,8 +82,8 @@ export class ProjectsService extends BaseDatabaseService {
     return data;
   }
 
-  async updateProjectStatus(id: string, status: SolarProject['status']) {
-    return this.update<SolarProject>(id, { status });
+  async updateProjectStatus(projectId: string, status: SolarProject['status']) {
+    return this.update<SolarProject>(projectId, { status });
   }
 
   async getProjectsByDateRange(startDate: string, endDate: string) {
@@ -78,13 +98,18 @@ export class ProjectsService extends BaseDatabaseService {
   }
 
   async getProjectStats() {
-    const { data, error } = await supabase
-      .from(this.table)
-      .select('status, project_type, count')
-      .select('*', { count: 'exact' })
-      .group('status, project_type');
+    try {
+      const { data, error } = await supabase
+        .rpc('get_project_stats');
 
-    if (error) throw error;
-    return data;
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    } catch (error) {
+      console.error('Error getting project stats:', error);
+      throw error;
+    }
   }
 } 

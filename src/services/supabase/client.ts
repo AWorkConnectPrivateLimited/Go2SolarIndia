@@ -20,9 +20,21 @@ export const supabase = createClient(env.supabase.url, env.supabase.anonKey, {
     persistSession: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    url: env.app.url,
   },
 });
+
+// Create a service role client that can bypass RLS policies
+// This should only be used for server-side operations or in secure contexts
+export const supabaseAdmin = createClient(
+  env.supabase.url,
+  env.supabase.serviceRoleKey || env.supabase.anonKey,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  }
+);
 
 // Test the connection
 supabase.from('users').select('count').then(

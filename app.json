@@ -12,13 +12,22 @@
       "backgroundColor": "#ffffff"
     },
     "assetBundlePatterns": [
-      "**/*"
+      "assets/images/*",
+      "assets/icon.png",
+      "assets/splash.png",
+      "assets/adaptive-icon.png",
+      "assets/favicon.png"
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.go2solar.app",
       "config": {
         "googleMapsApiKey": "${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}"
+      },
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow Go2Solar to access your photos.",
+        "NSCameraUsageDescription": "Allow Go2Solar to access your camera.",
+        "NSMicrophoneUsageDescription": "Allow Go2Solar to access your microphone."
       }
     },
     "android": {
@@ -36,7 +45,10 @@
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -48,6 +60,13 @@
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Allow Go2Solar to use your location."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Go2Solar to access your photos.",
+          "cameraPermission": "Allow Go2Solar to access your camera."
         }
       ]
     ],

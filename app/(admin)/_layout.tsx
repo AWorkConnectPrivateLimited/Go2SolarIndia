@@ -1,272 +1,121 @@
-import { Stack, useRouter, usePathname } from 'expo-router';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, Dimensions, Platform, TouchableOpacity, ScrollView, Pressable, useWindowDimensions } from 'react-native';
+import { Surface, Portal, Modal, useTheme, Text, Button, IconButton, Divider, Avatar, Badge, Menu } from 'react-native-paper';
+import { Stack, usePathname, useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../src/store';
 import { Redirect } from 'expo-router';
-import { View, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
-import { Text, IconButton, Divider, useTheme, Surface, Menu, Badge } from 'react-native-paper';
-import { useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
 
-// Quick action modules for the sidebar
-const quickActionModules = [
-  {
-    id: 'dashboard',
-    title: 'Dashboard',
-    icon: 'view-dashboard',
-    route: '/(admin)/dashboard',
-  },
-  {
-    id: 'users',
-    title: 'Users & Roles',
-    icon: 'account-group',
-    route: '/(admin)/users',
-  },
-  {
-    id: 'projects',
-    title: 'Projects',
-    icon: 'solar-power',
-    route: '/(admin)/projects',
-  },
-  {
-    id: 'analytics',
-    title: 'Analytics',
-    icon: 'chart-bar',
-    route: '/(admin)/analytics',
-  },
-  {
-    id: 'chatbot',
-    title: 'Chatbot',
-    icon: 'robot',
-    route: '/(admin)/chatbot',
-  },
-  {
-    id: 'workflow',
-    title: 'Workflow',
-    icon: 'workflow',
-    route: '/(admin)/workflow',
-  },
-  {
-    id: 'insights',
-    title: 'AI Insights',
-    icon: 'lightbulb',
-    route: '/(admin)/insights',
-  },
-  {
-    id: 'inverters',
-    title: 'Inverters',
-    icon: 'power-plug',
-    route: '/(admin)/inverters',
-  },
-  {
-    id: 'integrations',
-    title: 'Integrations',
-    icon: 'connection',
-    route: '/(admin)/integrations',
-  },
-  {
-    id: 'logs',
-    title: 'System Logs',
-    icon: 'file-document',
-    route: '/(admin)/logs',
-  },
-  {
-    id: 'maintenance',
-    title: 'Maintenance',
-    icon: 'wrench',
-    route: '/(admin)/maintenance',
-  },
-  {
-    id: 'settings',
-    title: 'Settings',
-    icon: 'cog',
-    route: '/(admin)/settings',
-  },
-  {
-    id: 'agents',
-    title: 'Agents',
-    icon: 'account-hard-hat',
-    route: '/(admin)/agents',
-  },
-  {
-    id: 'wallet',
-    title: 'Wallet',
-    icon: 'wallet',
-    route: '/(admin)/wallet',
-  },
-  {
-    id: 'payments',
-    title: 'Payments',
-    icon: 'cash-multiple',
-    route: '/(admin)/payments',
-  },
-  {
-    id: 'referrals',
-    title: 'Referrals',
-    icon: 'account-multiple',
-    route: '/(admin)/referrals',
-  },
-  {
-    id: 'geofencing',
-    title: 'Geofencing',
-    icon: 'map-marker-radius',
-    route: '/(admin)/geofencing',
-  },
-  {
-    id: 'support',
-    title: 'Support',
-    icon: 'help-circle',
-    route: '/(admin)/support',
-  },
-  {
-    id: 'marketing',
-    title: 'Marketing',
-    icon: 'bullhorn',
-    route: '/(admin)/marketing',
-  },
-  {
-    id: 'service-requests',
-    title: 'Service Requests',
-    icon: 'clipboard-list',
-    route: '/(admin)/service-requests',
-  },
-  {
-    id: 'reports',
-    title: 'Reports',
-    icon: 'file-chart',
-    route: '/(admin)/reports',
-  },
-  {
-    id: 'energy',
-    title: 'Energy',
-    icon: 'lightning-bolt',
-    route: '/(admin)/energy',
-  },
-  {
-    id: 'sundaygrids',
-    title: 'SundayGrids',
-    icon: 'grid',
-    route: '/(admin)/sundaygrids',
-  },
-  {
-    id: 'notifications',
-    title: 'Notifications',
-    icon: 'bell',
-    route: '/(admin)/notifications',
-  },
-  {
-    id: 'troubleshooting',
-    title: 'Troubleshooting',
-    icon: 'wrench-cog',
-    route: '/(admin)/troubleshooting',
-  },
+// Define User type with proper metadata
+interface User {
+  id: string;
+  email: string;
+  role: 'admin' | 'agent' | 'customer';
+  user_metadata?: {
+    full_name?: string;
+  };
+}
+
+// Bottom navigation items - most important ones for quick access
+const BOTTOM_TABS = [
+  { name: 'dashboard', label: 'Dashboard', icon: 'view-dashboard' as const },
+  { name: 'users', label: 'Users', icon: 'account-group' as const },
+  { name: 'projects', label: 'Projects', icon: 'solar-power' as const },
+  { name: 'more', label: 'More', icon: 'dots-horizontal' as const },
+];
+
+// Full sidebar items
+const SIDEBAR_ITEMS = [
+  { id: 'dashboard', icon: 'view-dashboard' as const, label: 'Dashboard', route: '/dashboard' },
+  { id: 'users', icon: 'account-group' as const, label: 'Users & Roles', route: '/users' },
+  { id: 'projects', icon: 'solar-power' as const, label: 'Projects', route: '/projects' },
+  { id: 'analytics', icon: 'chart-bar' as const, label: 'Analytics', route: '/analytics' },
+  { id: 'chatbot', icon: 'robot' as const, label: 'Chatbot', route: '/chatbot' },
+  { id: 'workflow', icon: 'arrow-decision' as const, label: 'Workflow', route: '/workflow' },
+  { id: 'insights', icon: 'lightbulb' as const, label: 'AI Insights', route: '/insights' },
+  { id: 'inverters', icon: 'power-plug' as const, label: 'Inverters', route: '/inverters' },
+  { id: 'integrations', icon: 'connection' as const, label: 'Integrations', route: '/integrations' },
+  { id: 'logs', icon: 'file-document' as const, label: 'System Logs', route: '/logs' },
+  { id: 'maintenance', icon: 'wrench' as const, label: 'Maintenance', route: '/maintenance' },
+  { id: 'agents', icon: 'account-hard-hat' as const, label: 'Agents', route: '/agents' },
+  { id: 'wallet', icon: 'wallet' as const, label: 'Wallet', route: '/wallet' },
+  { id: 'payments', icon: 'cash-multiple' as const, label: 'Payments', route: '/payments' },
+  { id: 'referrals', icon: 'account-multiple' as const, label: 'Referrals', route: '/referrals' },
+  { id: 'geofencing', icon: 'map-marker-radius' as const, label: 'Geofencing', route: '/geofencing' },
+  { id: 'support', icon: 'help-circle' as const, label: 'Support', route: '/support' },
+  { id: 'marketing', icon: 'bullhorn' as const, label: 'Marketing', route: '/marketing' },
+  { id: 'service-requests', icon: 'clipboard-list' as const, label: 'Service Requests', route: '/service-requests' },
+  { id: 'reports', icon: 'file-chart' as const, label: 'Reports', route: '/reports' },
+  { id: 'energy', icon: 'lightning-bolt' as const, label: 'Energy', route: '/energy' },
+  { id: 'sundaygrids', icon: 'grid' as const, label: 'SundayGrids', route: '/sundaygrids' },
+  { id: 'notifications', icon: 'bell' as const, label: 'Notifications', route: '/notifications', badge: 3 },
+  { id: 'troubleshooting', icon: 'wrench-clock' as const, label: 'Troubleshooting', route: '/troubleshooting' },
+  { id: 'settings', icon: 'cog' as const, label: 'Settings', route: '/settings' },
 ];
 
 export default function AdminLayout() {
-  const user = useSelector((state: RootState) => state.auth.user);
-  const router = useRouter();
-  const pathname = usePathname();
   const theme = useTheme();
-  const { width } = useWindowDimensions();
-  const [collapsed, setCollapsed] = useState(width < 768);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [profileMenuVisible, setProfileMenuVisible] = useState(false);
-  const [notificationMenuVisible, setNotificationMenuVisible] = useState(false);
-  
-  // Mock notification count - replace with actual data
-  const notificationCount = 3;
+  const [sidebarVisible, setSidebarVisible] = useState(false);
+  const user = useSelector((state: RootState) => state.auth.user) as User | null;
+  const pathname = usePathname();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+  const [activeTab, setActiveTab] = useState('dashboard');
+
+  // Set active tab based on current path
+  useEffect(() => {
+    const path = pathname.split('/').pop() || 'dashboard';
+    setActiveTab(path);
+  }, [pathname]);
   
   // Redirect to login if not authenticated or not an admin
   if (!user || user.role !== 'admin') {
     return <Redirect href="/(auth)/login" />;
   }
 
-  const toggleSidebar = () => {
-    setCollapsed(!collapsed);
-  };
-
-  const navigateTo = (route: string) => {
-    router.push(route);
-    // Auto-collapse sidebar on mobile after navigation
-    if (width < 768) {
-      setCollapsed(true);
-    }
+  const getInitials = (name: string | null | undefined) => {
+    if (!name) return 'A';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase();
   };
 
   const handleLogout = () => {
     // Add logout logic here
+    setShowLogoutModal(false);
+    setProfileMenuVisible(false);
     router.push('/(auth)/login');
   };
 
   const handleViewProfile = () => {
-    // Add view profile logic here
+    setSidebarVisible(false);
     router.push('/(admin)/profile');
   };
 
-  const handleViewNotifications = () => {
-    // Add view notifications logic here
-    router.push('/(admin)/notifications');
+  const handleTabPress = (tabName: string) => {
+    if (tabName === 'more') {
+      setSidebarVisible(true);
+    } else {
+      setActiveTab(tabName);
+      router.push(`/(admin)/${tabName}`);
+    }
+  };
+
+  const handleSidebarItemPress = (route: string) => {
+    setSidebarVisible(false);
+    router.push(`/(admin)${route}`);
   };
 
   const styles = StyleSheet.create({
     container: {
       flex: 1,
-      flexDirection: width < 768 ? 'column' : 'row',
-    },
-    sidebar: {
-      width: width < 768 ? '100%' : (collapsed ? 60 : 240),
-      height: width < 768 ? (collapsed ? 60 : 'auto') : '100%',
-      backgroundColor: theme.colors.surface,
-      borderRightWidth: width < 768 ? 0 : 1,
-      borderBottomWidth: width < 768 ? 1 : 0,
-      borderRightColor: theme.colors.outlineVariant,
-      borderBottomColor: theme.colors.outlineVariant,
-      transition: 'width 0.3s ease',
-    },
-    content: {
-      flex: 1,
-      width: width < 768 ? '100%' : undefined,
-    },
-    sidebarHeader: {
-      padding: 16,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    sidebarTitle: {
-      fontWeight: 'bold',
-      fontSize: 18,
-    },
-    sidebarItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      padding: 12,
-      paddingHorizontal: 16,
-    },
-    sidebarItemText: {
-      marginLeft: 12,
-      flex: 1,
-    },
-    sidebarItemCollapsed: {
-      justifyContent: 'center',
-    },
-    sidebarItemActive: {
-      backgroundColor: theme.colors.primaryContainer,
-    },
-    sidebarItemActiveText: {
-      color: theme.colors.primary,
-    },
-    sidebarFooter: {
-      padding: 16,
-      borderTopWidth: 1,
-      borderTopColor: theme.colors.outlineVariant,
-    },
-    userInfo: {
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    userName: {
-      marginLeft: 8,
-      fontWeight: 'bold',
-      flex: 1,
+      backgroundColor: theme.colors.background,
     },
     header: {
       flexDirection: 'row',
@@ -285,92 +134,120 @@ export default function AdminLayout() {
       flexDirection: 'row',
       alignItems: 'center',
     },
-    notificationBadge: {
+    bottomNav: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      alignItems: 'center',
+      paddingVertical: 8,
+      backgroundColor: theme.colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: theme.colors.outlineVariant,
+    },
+    tabButton: {
+      alignItems: 'center',
+      padding: 8,
+    },
+    tabLabel: {
+      fontSize: 12,
+      marginTop: 4,
+    },
+    activeTab: {
+      color: theme.colors.primary,
+    },
+    inactiveTab: {
+      color: theme.colors.onSurfaceVariant,
+    },
+    sidebar: {
       position: 'absolute',
       top: 0,
       right: 0,
-      backgroundColor: theme.colors.error,
+      bottom: 0,
+      width: width * 0.8,
+      maxWidth: 400,
+      backgroundColor: theme.colors.surface,
+      zIndex: 1000,
+      elevation: 5,
+      shadowColor: '#000',
+      shadowOffset: { width: -2, height: 0 },
+      shadowOpacity: 0.25,
+      shadowRadius: 3.84,
     },
-    notificationIcon: {
-      marginRight: 8,
+    sidebarHeader: {
+      padding: 16,
+      backgroundColor: theme.colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.outlineVariant,
+    },
+    profileSection: {
+      padding: 16,
+      backgroundColor: theme.colors.surface,
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderBottomWidth: 1,
+      borderBottomColor: theme.colors.outlineVariant,
+    },
+    profileInfo: {
+      marginLeft: 16,
+      flex: 1,
+    },
+    profileName: {
+      fontSize: 18,
+      fontWeight: 'bold',
+      color: theme.colors.onSurface,
+    },
+    profileEmail: {
+      fontSize: 14,
+      color: theme.colors.onSurfaceVariant,
+    },
+    sidebarItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+    },
+    sidebarItemIcon: {
+      width: 24,
+      alignItems: 'center',
+      marginRight: 32,
+    },
+    sidebarItemLabel: {
+      fontSize: 16,
+      color: theme.colors.onSurface,
+      flex: 1,
+    },
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    modalContent: {
+      backgroundColor: theme.colors.surface,
+      padding: 20,
+      margin: 20,
+      borderRadius: 8,
+    },
+    modalButtons: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: 20,
+      gap: 8,
+    },
+    badge: {
+      position: 'absolute',
+      top: 0,
+      right: 10,
     },
   });
 
   return (
     <View style={styles.container}>
       <StatusBar style="dark" backgroundColor="white" />
-      <Surface style={styles.sidebar} elevation={1}>
-        <View style={styles.sidebarHeader}>
-          {!collapsed && <Text style={styles.sidebarTitle}>Go2Solar Admin</Text>}
-          <IconButton 
-            icon={collapsed ? 'menu' : 'menu-open'} 
-            size={24} 
-            onPress={toggleSidebar} 
-          />
-        </View>
-        
-        <Divider />
-        
-        <ScrollView>
-          {quickActionModules.map((module) => (
-            <View 
-              key={module.id}
-              style={[
-                styles.sidebarItem,
-                collapsed && styles.sidebarItemCollapsed,
-                pathname === module.route && styles.sidebarItemActive
-              ]}
-              onTouchEnd={() => navigateTo(module.route)}
-            >
-              <IconButton 
-                icon={module.icon} 
-                size={24} 
-                iconColor={pathname === module.route ? theme.colors.primary : theme.colors.onSurface}
-              />
-              {!collapsed && (
-                <Text 
-                  style={[
-                    styles.sidebarItemText,
-                    pathname === module.route && styles.sidebarItemActiveText
-                  ]}
-                >
-                  {module.title}
-                </Text>
-              )}
-            </View>
-          ))}
-        </ScrollView>
-        
-        <View style={styles.sidebarFooter}>
-          {!collapsed && (
-            <View style={styles.userInfo}>
-              <IconButton icon="account" size={24} />
-              <Text style={styles.userName}>{user?.full_name || 'Admin User'}</Text>
-            </View>
-          )}
-          {collapsed && <IconButton icon="account" size={24} />}
-        </View>
-      </Surface>
-      
-      <View style={styles.content}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Go2Solar Admin</Text>
           <View style={styles.headerActions}>
-            <View style={styles.notificationIcon}>
               <IconButton
                 icon="bell"
                 size={24}
-                onPress={() => setNotificationMenuVisible(true)}
-              />
-              {notificationCount > 0 && (
-                <Badge
-                  size={16}
-                  style={styles.notificationBadge}
-                >
-                  {notificationCount}
-                </Badge>
-              )}
-            </View>
+            onPress={() => router.push('/(admin)/notifications')}
+          />
             <Menu
               visible={profileMenuVisible}
               onDismiss={() => setProfileMenuVisible(false)}
@@ -393,7 +270,7 @@ export default function AdminLayout() {
               <Menu.Item
                 onPress={() => {
                   setProfileMenuVisible(false);
-                  handleLogout();
+                setShowLogoutModal(true);
                 }}
                 title="Logout"
                 leadingIcon="logout"
@@ -401,219 +278,118 @@ export default function AdminLayout() {
             </Menu>
           </View>
         </View>
-        <Stack>
-          <Stack.Screen
-            name="dashboard"
-            options={{
-              title: 'Admin Dashboard',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="users"
-            options={{
-              title: 'User Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="projects"
-            options={{
-              title: 'Project Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="reports"
-            options={{
-              title: 'Reports & Analytics',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="settings"
-            options={{
-              title: 'System Settings',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="integrations"
-            options={{
-              title: 'Integrations',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="analytics"
-            options={{
-              title: 'Analytics',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="chatbot"
-            options={{
-              title: 'Chatbot Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="workflow"
-            options={{
-              title: 'Workflow Automation',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="insights"
-            options={{
-              title: 'AI Insights',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="inverters"
-            options={{
-              title: 'Inverter Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="logs"
-            options={{
-              title: 'System Logs',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="maintenance"
-            options={{
-              title: 'Maintenance',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="users/roles"
-            options={{
-              title: 'Role Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="projects/approvals"
-            options={{
-              title: 'Project Approvals',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="integrations/health"
-            options={{
-              title: 'Integration Health',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="agents"
-            options={{
-              title: 'Agent Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="wallet"
-            options={{
-              title: 'Wallet Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="payments"
-            options={{
-              title: 'Payment Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="referrals"
-            options={{
-              title: 'Referral Program',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="geofencing"
-            options={{
-              title: 'Geofencing',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="support"
-            options={{
-              title: 'Support Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="marketing"
-            options={{
-              title: 'Marketing',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="service-requests"
-            options={{
-              title: 'Service Requests',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="energy"
-            options={{
-              title: 'Energy Management',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="sundaygrids"
-            options={{
-              title: 'SundayGrids',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="notifications"
-            options={{
-              title: 'Notifications',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="troubleshooting"
-            options={{
-              title: 'Troubleshooting',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="tickets"
-            options={{
-              title: 'Support Tickets',
-              headerShown: true,
-            }}
-          />
-          <Stack.Screen
-            name="support/chat"
-            options={{
-              title: 'Support Chat',
-              headerShown: true,
-            }}
-          />
-        </Stack>
-      </View>
+
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
+
+      <Portal>
+        <Modal
+          visible={sidebarVisible}
+          onDismiss={() => setSidebarVisible(false)}
+          contentContainerStyle={styles.sidebar}
+        >
+          <Pressable 
+            style={styles.profileSection}
+            onPress={() => handleSidebarItemPress('/profile')}
+          >
+            <Avatar.Text 
+              size={56} 
+              label={getInitials(user?.user_metadata?.full_name || user?.email)}
+              style={{ backgroundColor: theme.colors.primary }}
+            />
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{user?.user_metadata?.full_name || 'Admin User'}</Text>
+              <Text style={styles.profileEmail}>{user?.email}</Text>
+            </View>
+            <MaterialCommunityIcons 
+              name="chevron-right" 
+              size={24} 
+              color={theme.colors.onSurfaceVariant}
+            />
+          </Pressable>
+
+          <ScrollView>
+            {SIDEBAR_ITEMS.map((item, index) => (
+              <React.Fragment key={item.id}>
+                <Pressable 
+                  style={styles.sidebarItem}
+                  onPress={() => handleSidebarItemPress(item.route)}
+                >
+                  <View style={styles.sidebarItemIcon}>
+                    <MaterialCommunityIcons
+                      name={item.icon}
+                      size={24}
+                      color={theme.colors.primary}
+                    />
+                  </View>
+                  <Text style={styles.sidebarItemLabel}>{item.label}</Text>
+                  {item.badge && (
+                    <Badge style={styles.badge}>{item.badge}</Badge>
+                  )}
+                  <MaterialCommunityIcons
+                    name="chevron-right"
+                    size={24}
+                    color={theme.colors.onSurfaceVariant}
+                  />
+                </Pressable>
+                {index < SIDEBAR_ITEMS.length - 1 && <Divider />}
+              </React.Fragment>
+            ))}
+          </ScrollView>
+        </Modal>
+
+        <Modal
+          visible={showLogoutModal}
+          onDismiss={() => setShowLogoutModal(false)}
+          contentContainerStyle={styles.modalContent}
+        >
+          <Text variant="titleMedium">Confirm Logout</Text>
+          <Text variant="bodyMedium" style={{ marginTop: 8 }}>
+            Are you sure you want to logout?
+          </Text>
+          <View style={styles.modalButtons}>
+            <Button
+              mode="outlined"
+              onPress={() => setShowLogoutModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              mode="contained"
+              onPress={handleLogout}
+            >
+              Logout
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
+
+      <Surface style={styles.bottomNav}>
+        {BOTTOM_TABS.map((tab) => (
+          <Pressable
+            key={tab.name}
+            style={styles.tabButton}
+            onPress={() => handleTabPress(tab.name)}
+          >
+            <MaterialCommunityIcons
+              name={tab.icon}
+              size={24}
+              color={activeTab === tab.name ? theme.colors.primary : theme.colors.onSurfaceVariant}
+            />
+            <Text
+              style={[
+                styles.tabLabel,
+                activeTab === tab.name ? styles.activeTab : styles.inactiveTab,
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </Pressable>
+        ))}
+      </Surface>
     </View>
   );
 } 

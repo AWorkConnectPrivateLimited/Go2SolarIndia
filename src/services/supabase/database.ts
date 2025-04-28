@@ -83,23 +83,50 @@ export class BaseDatabaseService {
   async update<T>(id: string, data: Partial<T>) {
     try {
       console.log(`Updating record with ID ${id} in ${this.table}...`);
+      console.log('Update data:', JSON.stringify(data, null, 2));
+      
+      // Validate the data before update
+      if (!id) {
+        throw new Error('ID is required for update');
+      }
+      
+      if (!data || Object.keys(data).length === 0) {
+        throw new Error('Update data cannot be empty');
+      }
+
       const { data: result, error } = await supabase
         .from(this.table)
-        .update(data)
+        .update({
+          ...data,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', id)
         .select()
         .single();
 
       if (error) {
         console.error(`Error updating record with ID ${id} in ${this.table}:`, error);
-        throw new DatabaseError(`Failed to update data in ${this.table}`, error);
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw new DatabaseError(`Failed to update data in ${this.table}: ${error.message}`, error);
+      }
+      
+      if (!result) {
+        throw new Error(`No record found with ID ${id} in ${this.table}`);
       }
       
       console.log(`Successfully updated record with ID ${id} in ${this.table}`);
       return result as T;
     } catch (error) {
       console.error(`Exception in update for ${this.table}:`, error);
-      throw error;
+      if (error instanceof DatabaseError) {
+        throw error;
+      }
+      throw new DatabaseError(`Failed to update data in ${this.table}`, error as PostgrestError);
     }
   }
 

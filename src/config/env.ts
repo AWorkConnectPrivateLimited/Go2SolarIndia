@@ -12,11 +12,14 @@ import { Platform } from 'react-native';
 const requiredEnvVars = [
   'EXPO_PUBLIC_SUPABASE_URL',
   'EXPO_PUBLIC_SUPABASE_ANON_KEY',
-  'EXPO_PUBLIC_APP_URL'
+  'EXPO_PUBLIC_APP_URL',
+  'EXPO_PUBLIC_RAZORPAY_KEY_ID',
+  'EXPO_PUBLIC_RAZORPAY_KEY_SECRET'
 ];
 
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
+    console.error(`Missing required environment variable: ${envVar}`);
     throw new Error(`Missing required environment variable: ${envVar}`);
   }
 }
@@ -35,13 +38,14 @@ export const env = {
   supabase: {
     url: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
     anonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
+    serviceRoleKey: process.env.EXPO_PUBLIC_SUPABASE_SERVICE_ROLE_KEY || '',
   },
   razorpay: {
-    keyId: EXPO_PUBLIC_RAZORPAY_KEY_ID,
-    keySecret: EXPO_PUBLIC_RAZORPAY_KEY_SECRET,
+    keyId: process.env.EXPO_PUBLIC_RAZORPAY_KEY_ID || '',
+    keySecret: process.env.EXPO_PUBLIC_RAZORPAY_KEY_SECRET || '',
   },
   googleMaps: {
-    apiKey: EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
+    apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY || '',
   },
   app: {
     url: getAppUrl(),

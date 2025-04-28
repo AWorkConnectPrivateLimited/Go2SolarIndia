@@ -67,16 +67,6 @@ const mockIntegrations = [
     details: 'Intermittent connection issues with some inverter models.',
   },
   {
-    id: '7',
-    name: 'Zoho CRM',
-    type: 'CRM',
-    status: 'healthy',
-    uptime: '99.5%',
-    lastChecked: '2023-06-15T10:30:00Z',
-    responseTime: '250ms',
-    details: 'Customer data synchronization is functioning normally.',
-  },
-  {
     id: '8',
     name: 'Salesforce',
     type: 'CRM',
